@@ -3,93 +3,55 @@
   <component name="AutoImportSettings">
     <option name="autoReloadType" value="ALL" />
   </component>
-  <component name="CargoProjects">
-    <cargoProject FILE="$PROJECT_DIR$/Cargo.toml" />
-  </component>
   <component name="ChangeListManager">
-    <list default="true" id="533cbc2d-b66e-49bb-9f37-fb5f5a7139a9" name="Changes" comment="" />
+    <list default="true" id="112489e9-99e4-4e5f-bd24-eb6bd34a3042" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/Move.lock" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/sources/poap.move" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sources/campaign.move" beforeDir="false" afterPath="$PROJECT_DIR$/sources/campaign.move" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sources/events.move" beforeDir="false" afterPath="$PROJECT_DIR$/sources/events.move" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sources/funding.move" beforeDir="false" afterPath="$PROJECT_DIR$/sources/funding.move" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sources/registry.move" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sources/utils.move" beforeDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
-  <component name="ExecutionTargetManager" SELECTED_TARGET="RsBuildProfile:dev" />
-  <component name="FileTemplateManagerImpl">
-    <option name="RECENT_TEMPLATES">
-      <list>
-        <option value="Move File" />
-        <option value="Sui Move File" />
-      </list>
-    </option>
-  </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="MacroExpansionManager">
-    <option name="directoryName" value="w7gIR3SG" />
+    <option name="directoryName" value="8Oka7hSF" />
   </component>
-  <component name="ProjectColorInfo">{
-  &quot;associatedIndex&quot;: 2
-}</component>
-  <component name="ProjectId" id="3417depDo6maGfqDfcHEGPeF1D7" />
+  <component name="ProjectColorInfo"><![CDATA[{
+  "customColor": "",
+  "associatedIndex": 2
+}]]></component>
+  <component name="ProjectId" id="345yLugwQypiVK8J1U4A35j5S9S" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.rust.reset.selective.auto.import&quot;: &quot;true&quot;,
-    &quot;Sui.Build.executor&quot;: &quot;Run&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;org.rust.cargo.project.model.PROJECT_DISCOVERY&quot;: &quot;true&quot;,
-    &quot;org.rust.cargo.project.model.impl.CargoExternalSystemProjectAware.subscribe.first.balloon&quot;: &quot;&quot;,
-    &quot;org.rust.first.attach.projects&quot;: &quot;true&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.rust.reset.selective.auto.import": "true",
+    "git-widget-placeholder": "main",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "org.rust.cargo.project.model.impl.CargoExternalSystemProjectAware.subscribe.first.balloon": "",
+    "org.rust.first.attach.projects": "true",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
-  <component name="RunManager" selected="Sui.Build">
-    <configuration name="Run confluence" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
-      <option name="buildProfileId" value="dev" />
-      <option name="command" value="run --package confluence --bin confluence" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
-      <envs />
-      <option name="emulateTerminal" value="true" />
-      <option name="channel" value="DEFAULT" />
-      <option name="requiredFeatures" value="true" />
-      <option name="allFeatures" value="false" />
-      <option name="withSudo" value="false" />
-      <option name="buildTarget" value="REMOTE" />
-      <option name="backtrace" value="SHORT" />
-      <option name="isRedirectInput" value="false" />
-      <option name="redirectInputPath" value="" />
-      <method v="2">
-        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="Test confluence" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
-      <option name="command" value="test --workspace" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
-      <envs />
-      <option name="emulateTerminal" value="true" />
-      <option name="channel" value="DEFAULT" />
-      <option name="requiredFeatures" value="true" />
-      <option name="allFeatures" value="false" />
-      <option name="withSudo" value="false" />
-      <option name="buildTarget" value="REMOTE" />
-      <option name="backtrace" value="SHORT" />
-      <option name="isRedirectInput" value="false" />
-      <option name="redirectInputPath" value="" />
-      <method v="2">
-        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
-      </method>
-    </configuration>
+}]]></component>
+  <component name="RunManager">
     <configuration name="Build" type="SuiCommandConfiguration" factoryName="SuiCommand">
       <option name="command" value="move build" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -111,12 +73,12 @@
   </component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
-      <changelist id="533cbc2d-b66e-49bb-9f37-fb5f5a7139a9" name="Changes" comment="" />
-      <created>1760369312167</created>
+      <changelist id="112489e9-99e4-4e5f-bd24-eb6bd34a3042" name="Changes" comment="" />
+      <created>1760517676484</created>
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
-      <updated>1760369312167</updated>
-      <workItem from="1760369313277" duration="6795000" />
+      <updated>1760517676484</updated>
+      <workItem from="1760517678063" duration="5078000" />
     </task>
     <servers />
   </component>

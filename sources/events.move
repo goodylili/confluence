@@ -1,96 +1,98 @@
 module confluence::events;
-
-use std::{
-    string::String,
-    type_name::TypeName
-};
-
 use sui::event;
 
-// ============ Campaign Lifecycle Events ============
-
+// ====== CAMPAIGN EVENTS ======
 public struct CampaignCreated has copy, drop {
     campaign_id: ID,
     creator: address,
-    title: String,
+    title: vector<u8>,
+    description: vector<u8>,
     goal: u64,
-    coin_type: TypeName,
-    end_timestamp_ms: u64,
-    creation_timestamp_ms: u64
+    timestamp: u64,
 }
 
 public struct CampaignUpdated has copy, drop {
     campaign_id: ID,
-    updater: address,
-    old_title: String,
-    new_title: String,
-    old_description: String,
-    new_description: String,
-    timestamp_ms: u64
+    field: vector<u8>,
+    timestamp: u64,
+}
+
+public struct CampaignStatusChanged has copy, drop {
+    campaign_id: ID,
+    old_status: u8,
+    new_status: u8,
+    timestamp: u64,
+}
+
+public struct CampaignPaused has copy, drop {
+    campaign_id: ID,
+    creator: address,
+    reason: vector<u8>,
+    timestamp: u64,
+}
+
+public struct CampaignUnpaused has copy, drop {
+    campaign_id: ID,
+    creator: address,
+    timestamp: u64,
 }
 
 public struct CampaignCancelled has copy, drop {
     campaign_id: ID,
     creator: address,
-    reason: String,
+    reason: vector<u8>,
     total_raised: u64,
     contributor_count: u64,
-    timestamp_ms: u64
+    timestamp: u64,
 }
 
 public struct CampaignFinalized has copy, drop {
     campaign_id: ID,
-    status: u8,
+    final_status: u8,
     total_raised: u64,
     goal: u64,
     contributor_count: u64,
-    timestamp_ms: u64
+    timestamp: u64,
 }
 
-// ============ Funding Lifecycle Events ============
-
+// ====== FUNDING EVENTS ======
 public struct ContributionMade has copy, drop {
     campaign_id: ID,
     contributor: address,
     amount: u64,
-    total_raised: u64,
-    is_first_contribution: bool,
-    remark: String,
-    timestamp_ms: u64
+    timestamp: u64,
 }
 
-public struct ContributionRefunded has copy, drop {
+public struct FundsWithdrawn has copy, drop {
+    campaign_id: ID,
+    recipient: address,
+    amount: u64,
+    timestamp: u64,
+}
+
+public struct RefundIssued has copy, drop {
     campaign_id: ID,
     contributor: address,
     amount: u64,
-    reason: String,
-    timestamp_ms: u64
+    timestamp: u64,
 }
 
-// ============ Pause/Unpause Events ============
-
-public struct CampaignPaused has copy, drop {
-    campaign_id: ID,
-    pauser: address,
-    reason: String,
-    timestamp_ms: u64
-}
-
-public struct CampaignUnpaused has copy, drop {
-    campaign_id: ID,
-    unpauser: address,
-    timestamp_ms: u64
-}
-
-// ============ Goal Events ============
-
+// ====== GOAL TRACKING EVENTS ======
 public struct GoalReached has copy, drop {
     campaign_id: ID,
-    total_raised: u64,
+    final_amount: u64,
     goal: u64,
     contributor_count: u64,
-    time_to_goal_ms: u64,
-    timestamp_ms: u64
+    time_to_goal: u64,
+    timestamp: u64,
+}
+
+public struct MilestoneReached has copy, drop {
+    campaign_id: ID,
+    milestone_percentage: u64,
+    current_amount: u64,
+    goal: u64,
+    timestamp: u64,
 }
 
 public struct GoalUpdated has copy, drop {
@@ -98,77 +100,88 @@ public struct GoalUpdated has copy, drop {
     old_goal: u64,
     new_goal: u64,
     current_raised: u64,
-    updater: address,
-    timestamp_ms: u64
+    creator: address,
+    timestamp: u64,
 }
 
-public struct MilestoneReached has copy, drop {
-    campaign_id: ID,
-    milestone_percentage: u64, // 25, 50, 75, 100
-    total_raised: u64,
-    goal: u64,
-    timestamp_ms: u64
-}
-
-// ============ Withdrawal Events ============
-
-public struct FundsWithdrawn has copy, drop {
+// ====== EVENT EMISSION FUNCTIONS ======
+public fun emit_campaign_created(
     campaign_id: ID,
     creator: address,
-    amount: u64,
-    timestamp_ms: u64
-}
-
-// ============ Event Emission Functions ============
-
-// Campaign Lifecycle
-public(package) fun emit_campaign_created(
-    campaign_id: ID,
-    creator: address,
-    title: String,
+    title: vector<u8>,
+    description: vector<u8>,
     goal: u64,
-    coin_type: TypeName,
-    end_timestamp_ms: u64,
-    creation_timestamp_ms: u64
+    timestamp: u64,
 ) {
     event::emit(CampaignCreated {
         campaign_id,
         creator,
         title,
+        description,
         goal,
-        coin_type,
-        end_timestamp_ms,
-        creation_timestamp_ms
+        timestamp,
     });
 }
 
-public(package) fun emit_campaign_updated(
+public fun emit_campaign_updated(
     campaign_id: ID,
-    updater: address,
-    old_title: String,
-    new_title: String,
-    old_description: String,
-    new_description: String,
-    timestamp_ms: u64
+    field: vector<u8>,
+    timestamp: u64,
 ) {
     event::emit(CampaignUpdated {
         campaign_id,
-        updater,
-        old_title,
-        new_title,
-        old_description,
-        new_description,
-        timestamp_ms
+        field,
+        timestamp,
     });
 }
 
-public(package) fun emit_campaign_cancelled(
+public fun emit_campaign_status_changed(
+    campaign_id: ID,
+    old_status: u8,
+    new_status: u8,
+    timestamp: u64,
+) {
+    event::emit(CampaignStatusChanged {
+        campaign_id,
+        old_status,
+        new_status,
+        timestamp,
+    });
+}
+
+public fun emit_campaign_paused(
     campaign_id: ID,
     creator: address,
-    reason: String,
+    reason: vector<u8>,
+    timestamp: u64,
+) {
+    event::emit(CampaignPaused {
+        campaign_id,
+        creator,
+        reason,
+        timestamp,
+    });
+}
+
+public fun emit_campaign_unpaused(
+    campaign_id: ID,
+    creator: address,
+    timestamp: u64,
+) {
+    event::emit(CampaignUnpaused {
+        campaign_id,
+        creator,
+        timestamp,
+    });
+}
+
+public fun emit_campaign_cancelled(
+    campaign_id: ID,
+    creator: address,
+    reason: vector<u8>,
     total_raised: u64,
     contributor_count: u64,
-    timestamp_ms: u64
+    timestamp: u64,
 ) {
     event::emit(CampaignCancelled {
         campaign_id,
@@ -176,156 +189,164 @@ public(package) fun emit_campaign_cancelled(
         reason,
         total_raised,
         contributor_count,
-        timestamp_ms
+        timestamp,
     });
 }
 
-public(package) fun emit_campaign_finalized(
+public fun emit_campaign_finalized(
     campaign_id: ID,
-    status: u8,
+    final_status: u8,
     total_raised: u64,
     goal: u64,
     contributor_count: u64,
-    timestamp_ms: u64
+    timestamp: u64,
 ) {
     event::emit(CampaignFinalized {
         campaign_id,
-        status,
+        final_status,
         total_raised,
         goal,
         contributor_count,
-        timestamp_ms
+        timestamp,
     });
 }
 
-// Funding Lifecycle
-public(package) fun emit_contribution_made(
+public fun emit_contribution_event(
     campaign_id: ID,
     contributor: address,
     amount: u64,
-    total_raised: u64,
-    is_first_contribution: bool,
-    remark: String,
-    timestamp_ms: u64
+    timestamp: u64,
 ) {
     event::emit(ContributionMade {
         campaign_id,
         contributor,
         amount,
-        total_raised,
-        is_first_contribution,
-        remark,
-        timestamp_ms
+        timestamp,
     });
 }
 
-public(package) fun emit_contribution_refunded(
+public fun emit_contribution_made(
     campaign_id: ID,
     contributor: address,
     amount: u64,
-    reason: String,
-    timestamp_ms: u64
+    new_total_raised: u64,
+    is_first_contribution: bool,
+    remark: vector<u8>,
+    timestamp: u64,
 ) {
-    event::emit(ContributionRefunded {
+    event::emit(ContributionMade {
         campaign_id,
         contributor,
         amount,
-        reason,
-        timestamp_ms
+        timestamp,
     });
 }
 
-// Pause/Unpause
-public(package) fun emit_campaign_paused(
+public fun emit_withdrawal_event(
     campaign_id: ID,
-    pauser: address,
-    reason: String,
-    timestamp_ms: u64
+    recipient: address,
+    amount: u64,
+    timestamp: u64,
 ) {
-    event::emit(CampaignPaused {
+    event::emit(FundsWithdrawn {
         campaign_id,
-        pauser,
-        reason,
-        timestamp_ms
+        recipient,
+        amount,
+        timestamp,
     });
 }
 
-public(package) fun emit_campaign_unpaused(
+public fun emit_funds_withdrawn(
     campaign_id: ID,
-    unpauser: address,
-    timestamp_ms: u64
+    recipient: address,
+    amount: u64,
+    timestamp: u64,
 ) {
-    event::emit(CampaignUnpaused {
+    event::emit(FundsWithdrawn {
         campaign_id,
-        unpauser,
-        timestamp_ms
+        recipient,
+        amount,
+        timestamp,
     });
 }
 
-// Goal Events
-public(package) fun emit_goal_reached(
+public fun emit_refund_event(
     campaign_id: ID,
-    total_raised: u64,
+    contributor: address,
+    amount: u64,
+    timestamp: u64,
+) {
+    event::emit(RefundIssued {
+        campaign_id,
+        contributor,
+        amount,
+        timestamp,
+    });
+}
+
+public fun emit_contribution_refunded(
+    campaign_id: ID,
+    contributor: address,
+    amount: u64,
+    reason: vector<u8>,
+    timestamp: u64,
+) {
+    event::emit(RefundIssued {
+        campaign_id,
+        contributor,
+        amount,
+        timestamp,
+    });
+}
+
+public fun emit_goal_reached(
+    campaign_id: ID,
+    final_amount: u64,
     goal: u64,
     contributor_count: u64,
-    time_to_goal_ms: u64,
-    timestamp_ms: u64
+    time_to_goal: u64,
+    timestamp: u64,
 ) {
     event::emit(GoalReached {
         campaign_id,
-        total_raised,
+        final_amount,
         goal,
         contributor_count,
-        time_to_goal_ms,
-        timestamp_ms
+        time_to_goal,
+        timestamp,
     });
 }
 
-public(package) fun emit_goal_updated(
+public fun emit_milestone_reached(
+    campaign_id: ID,
+    milestone_percentage: u64,
+    current_amount: u64,
+    goal: u64,
+    timestamp: u64,
+) {
+    event::emit(MilestoneReached {
+        campaign_id,
+        milestone_percentage,
+        current_amount,
+        goal,
+        timestamp,
+    });
+}
+
+public fun emit_goal_updated(
     campaign_id: ID,
     old_goal: u64,
     new_goal: u64,
     current_raised: u64,
-    updater: address,
-    timestamp_ms: u64
+    creator: address,
+    timestamp: u64,
 ) {
     event::emit(GoalUpdated {
         campaign_id,
         old_goal,
         new_goal,
         current_raised,
-        updater,
-        timestamp_ms
-    });
-}
-
-public(package) fun emit_milestone_reached(
-    campaign_id: ID,
-    milestone_percentage: u64,
-    total_raised: u64,
-    goal: u64,
-    timestamp_ms: u64
-) {
-    event::emit(MilestoneReached {
-        campaign_id,
-        milestone_percentage,
-        total_raised,
-        goal,
-        timestamp_ms
-    });
-}
-
-// Withdrawal
-public(package) fun emit_funds_withdrawn(
-    campaign_id: ID,
-    creator: address,
-    amount: u64,
-    timestamp_ms: u64
-) {
-    event::emit(FundsWithdrawn {
-        campaign_id,
         creator,
-        amount,
-        timestamp_ms
+        timestamp,
     });
 }
