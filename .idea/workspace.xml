@@ -5,15 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="112489e9-99e4-4e5f-bd24-eb6bd34a3042" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/Move.lock" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/sources/poap.move" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sources/campaign.move" beforeDir="false" afterPath="$PROJECT_DIR$/sources/campaign.move" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/sources/events.move" beforeDir="false" afterPath="$PROJECT_DIR$/sources/events.move" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sources/funding.move" beforeDir="false" afterPath="$PROJECT_DIR$/sources/funding.move" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sources/registry.move" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/sources/utils.move" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sources/poap.move" beforeDir="false" afterPath="$PROJECT_DIR$/sources/poap.move" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -78,7 +72,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1760517676484</updated>
-      <workItem from="1760517678063" duration="5078000" />
+      <workItem from="1760517678063" duration="7168000" />
     </task>
     <servers />
   </component>

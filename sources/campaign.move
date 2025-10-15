@@ -49,7 +49,7 @@ const EWithdrawalExceedsBalance: u64 = 20;
 const EInvalidContributor: u64 = 21;
 const EInvalidUrl: u64 = 22;
 
-public struct Campaign<phantom T> has key, store {
+public struct Campaign<phantom T> has key {
     id: UID,
     creator: address,
     title: String,
@@ -63,7 +63,7 @@ public struct Campaign<phantom T> has key, store {
     creation_timestamp_ms: u64,
     status: u8,
     total_withdrawn: u64,
-    locked: bool  // Reentrancy guard
+    locked: bool 
 }
 
 public fun create_campaign<T>(
@@ -80,7 +80,6 @@ public fun create_campaign<T>(
     assert!(string::length(&description) > 0, EEmptyDescription);
     assert!(string::length(&description) <= 1000, EInvalidGoal); // Max description length
     
-    // Enhanced goal validation with overflow protection
     assert!(goal > 0, EInvalidGoal);
     assert!(goal <= 1000000000000000000u64, EInvalidGoal); // Max goal: 1B tokens (18 decimals)
     

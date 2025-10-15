@@ -1,19 +1,21 @@
 module confluence::events;
 use sui::event;
+use std::string;
+use std::string::String;
 
 // ====== CAMPAIGN EVENTS ======
 public struct CampaignCreated has copy, drop {
     campaign_id: ID,
     creator: address,
-    title: vector<u8>,
-    description: vector<u8>,
+    title: String,
+    description: String,
     goal: u64,
     timestamp: u64,
 }
 
 public struct CampaignUpdated has copy, drop {
     campaign_id: ID,
-    field: vector<u8>,
+    field: String,
     timestamp: u64,
 }
 
@@ -27,7 +29,7 @@ public struct CampaignStatusChanged has copy, drop {
 public struct CampaignPaused has copy, drop {
     campaign_id: ID,
     creator: address,
-    reason: vector<u8>,
+    reason: String,
     timestamp: u64,
 }
 
@@ -40,7 +42,7 @@ public struct CampaignUnpaused has copy, drop {
 public struct CampaignCancelled has copy, drop {
     campaign_id: ID,
     creator: address,
-    reason: vector<u8>,
+    reason: String,
     total_raised: u64,
     contributor_count: u64,
     timestamp: u64,
@@ -60,6 +62,9 @@ public struct ContributionMade has copy, drop {
     campaign_id: ID,
     contributor: address,
     amount: u64,
+    new_total_raised: u64,
+    is_first_contribution: bool,
+    remark: String,
     timestamp: u64,
 }
 
@@ -74,6 +79,23 @@ public struct RefundIssued has copy, drop {
     campaign_id: ID,
     contributor: address,
     amount: u64,
+    reason: String,
+    timestamp: u64,
+}
+
+// ====== REFUND BATCH EVENTS ======
+public struct RefundBatchProcessed has copy, drop {
+    campaign_id: ID,
+    total_refunded: u64,
+    next_index: u64,
+    is_complete: bool,
+    timestamp: u64,
+}
+
+public struct AllContributorsRefunded has copy, drop {
+    campaign_id: ID,
+    total_refunded: u64,
+    contributor_count: u64,
     timestamp: u64,
 }
 
@@ -108,8 +130,8 @@ public struct GoalUpdated has copy, drop {
 public fun emit_campaign_created(
     campaign_id: ID,
     creator: address,
-    title: vector<u8>,
-    description: vector<u8>,
+    title: String,
+    description: String,
     goal: u64,
     timestamp: u64,
 ) {
@@ -125,7 +147,7 @@ public fun emit_campaign_created(
 
 public fun emit_campaign_updated(
     campaign_id: ID,
-    field: vector<u8>,
+    field: String,
     timestamp: u64,
 ) {
     event::emit(CampaignUpdated {
@@ -152,7 +174,7 @@ public fun emit_campaign_status_changed(
 public fun emit_campaign_paused(
     campaign_id: ID,
     creator: address,
-    reason: vector<u8>,
+    reason: String,
     timestamp: u64,
 ) {
     event::emit(CampaignPaused {
@@ -178,7 +200,7 @@ public fun emit_campaign_unpaused(
 public fun emit_campaign_cancelled(
     campaign_id: ID,
     creator: address,
-    reason: vector<u8>,
+    reason: String,
     total_raised: u64,
     contributor_count: u64,
     timestamp: u64,
@@ -221,6 +243,9 @@ public fun emit_contribution_event(
         campaign_id,
         contributor,
         amount,
+        new_total_raised: 0,
+        is_first_contribution: false,
+        remark: string::utf8(b""),
         timestamp,
     });
 }
@@ -231,13 +256,16 @@ public fun emit_contribution_made(
     amount: u64,
     new_total_raised: u64,
     is_first_contribution: bool,
-    remark: vector<u8>,
+    remark: String,
     timestamp: u64,
 ) {
     event::emit(ContributionMade {
         campaign_id,
         contributor,
         amount,
+        new_total_raised,
+        is_first_contribution,
+        remark,
         timestamp,
     });
 }
@@ -274,12 +302,14 @@ public fun emit_refund_event(
     campaign_id: ID,
     contributor: address,
     amount: u64,
+    reason: String,
     timestamp: u64,
 ) {
     event::emit(RefundIssued {
         campaign_id,
         contributor,
         amount,
+        reason,
         timestamp,
     });
 }
@@ -288,13 +318,14 @@ public fun emit_contribution_refunded(
     campaign_id: ID,
     contributor: address,
     amount: u64,
-    reason: vector<u8>,
+    reason: String,
     timestamp: u64,
 ) {
     event::emit(RefundIssued {
         campaign_id,
         contributor,
         amount,
+        reason,
         timestamp,
     });
 }
@@ -347,6 +378,37 @@ public fun emit_goal_updated(
         new_goal,
         current_raised,
         creator,
+        timestamp,
+    });
+}
+
+// ====== REFUND BATCH EMISSION FUNCTIONS ======
+public fun emit_refund_batch_processed(
+    campaign_id: ID,
+    total_refunded: u64,
+    next_index: u64,
+    is_complete: bool,
+    timestamp: u64,
+) {
+    event::emit(RefundBatchProcessed {
+        campaign_id,
+        total_refunded,
+        next_index,
+        is_complete,
+        timestamp,
+    });
+}
+
+public fun emit_all_contributors_refunded(
+    campaign_id: ID,
+    total_refunded: u64,
+    contributor_count: u64,
+    timestamp: u64,
+) {
+    event::emit(AllContributorsRefunded {
+        campaign_id,
+        total_refunded,
+        contributor_count,
         timestamp,
     });
 }
