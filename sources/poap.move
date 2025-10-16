@@ -9,7 +9,6 @@ use sui::{
     display
 };
 
-
 public struct POAP has drop {}
 
 // ====== ERROR CONSTANTS ======

@@ -14,7 +14,9 @@ use sui::{
 use usdc::usdc::USDC;
 
 use confluence::{
-    funding::{Self, Fund}
+    funding::{Self, Fund},
+    poap,
+    events
 };
 
 // ====== CAMPAIGN STATUSES ======
@@ -63,7 +65,8 @@ public struct Campaign<phantom T> has key {
     creation_timestamp_ms: u64,
     status: u8,
     total_withdrawn: u64,
-    locked: bool 
+    locked: bool,
+    poaps_issued: bool
 }
 
 public fun create_campaign<T>(
@@ -85,7 +88,7 @@ public fun create_campaign<T>(
     
     // Enhanced duration validation
     assert!(duration_ms > 0, EInvalidDuration);
-    assert!(duration_ms >= 86400000, EInvalidDuration); // Min 1 day (24 * 60 * 60 * 1000)
+    assert!(duration_ms >= 1000, EInvalidDuration); // Min 1 second
     assert!(duration_ms <= 31536000000, EInvalidDuration); // Max 1 year (365 * 24 * 60 * 60 * 1000)
     
     let creation_time = clock::timestamp_ms(clock);
@@ -126,13 +129,14 @@ public fun create_campaign<T>(
         creation_timestamp_ms: creation_time,
         status: STATUS_ACTIVE,
         total_withdrawn: 0,
-        locked: false
+        locked: false,
+        poaps_issued: false
     }
 }
 
 
 // Example: Make campaign a shared object
-public entry fun create_and_share_campaign<T>(
+public fun create_and_share_campaign<T>(
     title: String,
     description: String,
     goal: u64,
@@ -152,10 +156,15 @@ public entry fun create_and_share_campaign<T>(
     transfer::share_object(campaign);
 }
 
+// Testing helper: allow tests to share a locally created campaign object
+public fun share_for_testing<T>(campaign: Campaign<T>) {
+    transfer::share_object(campaign);
+}
+
 // ====== CAMPAIGN UPDATE FUNCTIONS ======
 
 /// Update campaign title
-public entry fun update_title<T>(
+public fun update_title<T>(
     campaign: &mut Campaign<T>,
     new_title: String,
     clock: &Clock,
@@ -172,10 +181,18 @@ public entry fun update_title<T>(
     assert!(string::length(&new_title) > 0, EEmptyTitle);
 
     campaign.title = new_title;
+
+    let cid = object::uid_to_inner(&campaign.id);
+    let ts = clock::timestamp_ms(clock);
+    events::emit_campaign_updated(
+        cid,
+        string::utf8(b"title"),
+        ts,
+    );
 }
 
 /// Update campaign description
-public entry fun update_description<T>(
+public fun update_description<T>(
     campaign: &mut Campaign<T>,
     new_description: String,
     clock: &Clock,
@@ -192,10 +209,18 @@ public entry fun update_description<T>(
     assert!(string::length(&new_description) > 0, EEmptyDescription);
 
     campaign.description = new_description;
+
+    let cid = object::uid_to_inner(&campaign.id);
+    let ts = clock::timestamp_ms(clock);
+    events::emit_campaign_updated(
+        cid,
+        string::utf8(b"description"),
+        ts,
+    );
 }
 
 /// Update campaign profile picture URL
-public entry fun set_profile_url<T>(
+public fun set_profile_url<T>(
     campaign: &mut Campaign<T>,
     new_profile_url: String,
     clock: &Clock,
@@ -215,10 +240,18 @@ public entry fun set_profile_url<T>(
 
     // Apply update
     campaign.profile_url = new_profile_url;
+
+    let cid = object::uid_to_inner(&campaign.id);
+    let ts = clock::timestamp_ms(clock);
+    events::emit_campaign_updated(
+        cid,
+        string::utf8(b"profile_url"),
+        ts,
+    );
 }
 
 /// Update campaign background URL
-public entry fun set_background_url<T>(
+public fun set_background_url<T>(
     campaign: &mut Campaign<T>,
     new_background_url: String,
     clock: &Clock,
@@ -238,10 +271,18 @@ public entry fun set_background_url<T>(
 
     // Apply update
     campaign.background_url = new_background_url;
+
+    let cid = object::uid_to_inner(&campaign.id);
+    let ts = clock::timestamp_ms(clock);
+    events::emit_campaign_updated(
+        cid,
+        string::utf8(b"background_url"),
+        ts,
+    );
 }
 
 /// Update campaign goal (only creator, only if campaign is active and not expired)
-public entry fun update_goal<T>(
+public fun update_goal<T>(
     campaign: &mut Campaign<T>,
     new_goal: u64,
     clock: &Clock,
@@ -271,11 +312,40 @@ public entry fun update_goal<T>(
     let max_safe_goal = 18446744073709551615u64 / 100; // Ensure percentage calculations won't overflow
     assert!(new_goal <= max_safe_goal, EArithmeticOverflow);
 
+    let old_goal = campaign.goal;
     campaign.goal = new_goal;
 
     // Check if goal is now reached with new value
+    let ts = clock::timestamp_ms(clock);
+    let cid = object::uid_to_inner(&campaign.id);
+    events::emit_goal_updated(
+        cid,
+        old_goal,
+        new_goal,
+        current_raised,
+        campaign.creator,
+        ts,
+    );
+
     if (current_raised >= new_goal && campaign.status == STATUS_ACTIVE) {
+        let old_status = campaign.status;
         campaign.status = STATUS_SUCCESSFUL;
+        events::emit_campaign_status_changed(
+            cid,
+            old_status,
+            campaign.status,
+            ts,
+        );
+        let contributor_count = funding::get_contributor_count(&campaign.funding);
+        let time_to_goal = ts - campaign.creation_timestamp_ms;
+        events::emit_goal_reached(
+            cid,
+            current_raised,
+            new_goal,
+            contributor_count,
+            time_to_goal,
+            ts,
+        );
     };
 
     
@@ -286,9 +356,10 @@ public entry fun update_goal<T>(
 // ====== CAMPAIGN STATUS MANAGEMENT ======
 
 /// Pause campaign (only creator can pause)
-public entry fun pause_campaign<T>(
+public fun pause_campaign<T>(
     campaign: &mut Campaign<T>,
     reason: String,
+    clock: &Clock,
     ctx: &mut TxContext
 ) {
     // Reentrancy protection
@@ -305,14 +376,30 @@ public entry fun pause_campaign<T>(
     assert!(string::length(&reason) > 0, EEmptyDescription);
 
     // Update status to paused
+    let old_status = campaign.status;
     campaign.status = STATUS_PAUSED;
+
+    let cid = object::uid_to_inner(&campaign.id);
+    let ts = clock::timestamp_ms(clock);
+    events::emit_campaign_paused(
+        cid,
+        campaign.creator,
+        reason,
+        ts,
+    );
+    events::emit_campaign_status_changed(
+        cid,
+        old_status,
+        campaign.status,
+        ts,
+    );
     
     // Release lock before external calls
     campaign.locked = false;
 }
 
 /// Unpause campaign (only creator can unpause)
-public entry fun unpause_campaign<T>(
+public fun unpause_campaign<T>(
     campaign: &mut Campaign<T>,
     clock: &Clock,
     ctx: &mut TxContext
@@ -331,16 +418,32 @@ public entry fun unpause_campaign<T>(
     assert!(clock::timestamp_ms(clock) < campaign.end, ECampaignExpired);
 
     // Update status to active
+    let old_status = campaign.status;
     campaign.status = STATUS_ACTIVE;
+
+    let cid = object::uid_to_inner(&campaign.id);
+    let ts = clock::timestamp_ms(clock);
+    events::emit_campaign_unpaused(
+        cid,
+        campaign.creator,
+        ts,
+    );
+    events::emit_campaign_status_changed(
+        cid,
+        old_status,
+        campaign.status,
+        ts,
+    );
     
     // Release lock before external calls
     campaign.locked = false;
 }
 
 /// Cancel campaign and refund all contributors
-public entry fun cancel_campaign<T>(
+public fun cancel_campaign<T>(
     campaign: &mut Campaign<T>,
     reason: String,
+    clock: &Clock,
     ctx: &mut TxContext
 ) {
     // Reentrancy protection
@@ -350,10 +453,10 @@ public entry fun cancel_campaign<T>(
     // Validate caller is creator
     assert!(ctx.sender() == campaign.creator, ENotCreator);
 
-    // Validate campaign is not already finalized
+    // Validate campaign is not already finalized to a terminal state
+    // Allow finalization when goal was reached earlier (STATUS_SUCCESSFUL pre-finalization)
     assert!(
-        campaign.status != STATUS_SUCCESSFUL &&
-            campaign.status != STATUS_FAILED &&
+        campaign.status != STATUS_FAILED &&
             campaign.status != STATUS_CANCELLED &&
             campaign.status != STATUS_WITHDRAWN,
         ECampaignAlreadyFinalized
@@ -370,14 +473,33 @@ public entry fun cancel_campaign<T>(
     };
 
     // Update status to cancelled
+    let old_status = campaign.status;
     campaign.status = STATUS_CANCELLED;
+
+    let cid = object::uid_to_inner(&campaign.id);
+    let ts = clock::timestamp_ms(clock);
+    let contributor_count = funding::get_contributor_count(&campaign.funding);
+    events::emit_campaign_cancelled(
+        cid,
+        campaign.creator,
+        reason,
+        total_raised,
+        contributor_count,
+        ts,
+    );
+    events::emit_campaign_status_changed(
+        cid,
+        old_status,
+        campaign.status,
+        ts,
+    );
     
     // Release lock before external calls
     campaign.locked = false;
 }
 
 /// Finalize campaign (determine success or failure) - Only creator can finalize
-public entry fun finalize_campaign<T>(
+public fun finalize_campaign<T>(
     campaign: &mut Campaign<T>,
     clock: &Clock,
     ctx: &mut TxContext
@@ -393,9 +515,9 @@ public entry fun finalize_campaign<T>(
     let current_time = clock::timestamp_ms(clock);
     assert!(current_time >= campaign.end, ECampaignNotExpired);
 
-    // Validate campaign is not already finalized
+    // Validate campaign is not already finalized to a terminal state
+    // Allow finalization even if status is SUCCESSFUL from prior contributions
     assert!(
-        campaign.status != STATUS_SUCCESSFUL &&
             campaign.status != STATUS_FAILED &&
             campaign.status != STATUS_CANCELLED &&
             campaign.status != STATUS_WITHDRAWN,
@@ -416,16 +538,69 @@ public entry fun finalize_campaign<T>(
     };
 
     // Atomic state transition
+    let old_status = campaign.status;
     campaign.status = final_status;
     
     // Release lock before external calls
     campaign.locked = false;
+
+    // Emit finalization and status change
+    let cid = object::uid_to_inner(&campaign.id);
+    let contributor_count = funding::get_contributor_count(&campaign.funding);
+    events::emit_campaign_finalized(
+        cid,
+        final_status,
+        total_raised,
+        campaign.goal,
+        contributor_count,
+        current_time,
+    );
+    events::emit_campaign_status_changed(
+        cid,
+        old_status,
+        campaign.status,
+        current_time,
+    );
+
+    // If finalized as successful, issue POAPs once and emit goal reached
+    if (final_status == STATUS_SUCCESSFUL && !campaign.poaps_issued) {
+        let count = funding::get_contributor_count(&campaign.funding);
+        let mut i = 0u64;
+        let cid = object::uid_to_inner(&campaign.id);
+        let time_to_goal = current_time - campaign.creation_timestamp_ms;
+        events::emit_goal_reached(
+            cid,
+            total_raised,
+            campaign.goal,
+            count,
+            time_to_goal,
+            current_time,
+        );
+        while (i < count) {
+            let addr = funding::get_contributor_at(&campaign.funding, i);
+            let amt = funding::get_contributor_total(&campaign.funding, addr);
+            if (amt > 0) {
+                poap::issue_for_contribution(
+                    cid,
+                    addr,
+                    string::utf8(b"Campaign POAP"),
+                    string::utf8(b"Proof of Contribution"),
+                    amt,
+                    string::utf8(b"https://confluence.app"),
+                    clock,
+                    ctx
+                );
+            };
+            i = i + 1;
+        };
+        campaign.poaps_issued = true;
+    };
 }
 
 // ====== CONTRIBUTION FUNCTIONS ======
 
 /// Contribute to a campaign
-public entry fun contribute<T>(
+public fun contribute<T>(
     campaign: &mut Campaign<T>,
     payment: Coin<T>,
     remark: String,
@@ -462,6 +637,7 @@ public entry fun contribute<T>(
     assert!(current_raised <= campaign.goal - amount, EArithmeticOverflow);
 
     let contributor = ctx.sender();
+    let was_contributor = funding::is_contributor(&campaign.funding, contributor);
 
     // Add contribution to fund (atomic operation)
     funding::add_contribution(
@@ -474,23 +650,77 @@ public entry fun contribute<T>(
 
     // Get updated balance after contribution (atomic read)
     let new_total_raised = funding::get_balance(&campaign.funding);
+    let cid = object::uid_to_inner(&campaign.id);
+    let ts = current_time;
+    events::emit_contribution_made(
+        cid,
+        contributor,
+        amount,
+        new_total_raised,
+        !was_contributor,
+        remark,
+        ts,
+    );
 
     // Atomic goal check and status update
-    if (new_total_raised >= campaign.goal) {
+    if (current_raised < campaign.goal && new_total_raised >= campaign.goal) {
         // Automatically set campaign status to successful when goal is met
+        let old_status = campaign.status;
         campaign.status = STATUS_SUCCESSFUL;
+        events::emit_campaign_status_changed(
+            cid,
+            old_status,
+            campaign.status,
+            ts,
+        );
+        let count = funding::get_contributor_count(&campaign.funding);
+        let time_to_goal = ts - campaign.creation_timestamp_ms;
+        events::emit_goal_reached(
+            cid,
+            new_total_raised,
+            campaign.goal,
+            count,
+            time_to_goal,
+            ts,
+        );
     };
 
     
-    // Release lock
+    // Release lock before external calls
     campaign.locked = false;
+
+    // Issue POAPs once when campaign becomes successful
+    if (campaign.status == STATUS_SUCCESSFUL && !campaign.poaps_issued) {
+        let count = funding::get_contributor_count(&campaign.funding);
+        let mut i = 0u64;
+        let cid = object::uid_to_inner(&campaign.id);
+        while (i < count) {
+            let addr = funding::get_contributor_at(&campaign.funding, i);
+            let amt = funding::get_contributor_total(&campaign.funding, addr);
+            if (amt > 0) {
+                poap::issue_for_contribution(
+                    cid,
+                    addr,
+                    string::utf8(b"Campaign POAP"),
+                    string::utf8(b"Proof of Contribution"),
+                    amt,
+                    string::utf8(b"https://confluence.app"),
+                    clock,
+                    ctx
+                );
+            };
+            i = i + 1;
+        };
+        campaign.poaps_issued = true;
+    };
 }
 
 /// Refund a contributor (only if campaign is cancelled or failed)
-public entry fun refund_contributor<T>(
+public fun refund_contributor<T>(
     campaign: &mut Campaign<T>,
     contributor: address,
     reason: String,
+    clock: &Clock,
     ctx: &mut TxContext
 ) {
     // Only allow refunds if campaign is cancelled or failed
@@ -508,12 +738,22 @@ public entry fun refund_contributor<T>(
     // Withdraw contribution and assert a positive refund
     let refunded = funding::withdraw_contribution(&mut campaign.funding, contributor, ctx);
     assert!(refunded > 0, EInvalidWithdrawalAmount);
+
+    let cid = object::uid_to_inner(&campaign.id);
+    let ts = clock::timestamp_ms(clock);
+    events::emit_contribution_refunded(
+        cid,
+        contributor,
+        refunded,
+        reason,
+        ts,
+    );
 }
 
 // ====== WITHDRAWAL FUNCTIONS ======
 
 /// Withdraw funds from campaign after time elapsed (only creator)
-public entry fun withdraw_funds<T>(
+public fun withdraw_funds<T>(
     campaign: &mut Campaign<T>,
     amount: u64,
     clock: &Clock,
@@ -562,8 +802,23 @@ public entry fun withdraw_funds<T>(
     campaign.total_withdrawn = campaign.total_withdrawn + amount;
 
     // Update status if all funds withdrawn
+    let cid = object::uid_to_inner(&campaign.id);
+    let ts = clock::timestamp_ms(clock);
+    events::emit_funds_withdrawn(
+        cid,
+        campaign.creator,
+        amount,
+        ts,
+    );
     if (campaign.total_withdrawn == total_raised) {
+        let old_status = campaign.status;
         campaign.status = STATUS_WITHDRAWN;
+        events::emit_campaign_status_changed(
+            cid,
+            old_status,
+            campaign.status,
+            ts,
+        );
     };
     
     // Release lock before external transfer
@@ -574,7 +829,7 @@ public entry fun withdraw_funds<T>(
 }
 
 /// Emergency refund function for specific contributors (creator only, with restrictions)
-public entry fun emergency_refund<T>(
+public fun emergency_refund<T>(
     campaign: &mut Campaign<T>,
     contributor: address,
     reason: String,
@@ -612,6 +867,16 @@ public entry fun emergency_refund<T>(
     // Withdraw contribution and assert a positive refund
     let refund_amount = funding::withdraw_contribution(&mut campaign.funding, contributor, ctx);
     assert!(refund_amount > 0, EInvalidWithdrawalAmount);
+
+    let cid = object::uid_to_inner(&campaign.id);
+    let ts = clock::timestamp_ms(_clock);
+    events::emit_contribution_refunded(
+        cid,
+        contributor,
+        refund_amount,
+        reason,
+        ts,
+    );
 
     // Release lock before external calls
     campaign.locked = false;
@@ -827,8 +1092,3 @@ public fun validate_creation_params(
     assert!(goal > 0, EInvalidGoal);
     assert!(duration_ms > 0, EInvalidDuration);
 }
-
-
-
-
-

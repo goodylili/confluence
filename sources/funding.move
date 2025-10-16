@@ -8,7 +8,6 @@ use sui::{
 
 use std::string::String;
 
-
 const ENoContribution: u64 = 0;
 const EInsufficientBalance: u64 = 1;
 const EInvalidAmount: u64 = 2;
@@ -18,6 +17,7 @@ public struct Contribution has store {
     timestamp_ms: u64,
     remark: String
 }
+
 public struct Fund<phantom T> has store {
     registry: Table<address, vector<Contribution>>,
     contributors: vector<address>,
@@ -85,7 +85,7 @@ public(package) fun withdraw_contribution<T>(
     transfer::public_transfer(withdrawal_coin, contributor);
 
     let contributions = table::remove(&mut fund.registry, contributor);
-    vector::destroy_empty(contributions); 
+    destroy_contributions_vec(contributions);
     
     let mut i = 0;
     let len = vector::length(&fund.contributors);
@@ -136,8 +136,9 @@ public(package) fun refund_all_contributors<T>(
         assert!(balance::value(&fund.balance) >= refund_amount, EInsufficientBalance);
         
         let contributor_contributions = table::remove(&mut fund.registry, contributor);
-        
-        vector::destroy_empty(contributor_contributions);
+
+        // Consume and destroy the contributor's contributions vector
+        destroy_contributions_vec(contributor_contributions);
         
         vector::remove(&mut fund.contributors, i);
         
@@ -153,12 +154,33 @@ public(package) fun refund_all_contributors<T>(
     total_refunded
 }
 
+// Helper to safely destroy a contributions vector regardless of its length
+fun destroy_contributions_vec(contributions: vector<Contribution>) {
+    // Work on a mutable local copy to consume elements
+    let mut local = contributions;
+    // Pop and drop each contribution element
+    while (vector::length(&local) > 0) {
+        let c = vector::pop_back(&mut local);
+        let Contribution { amount: _, timestamp_ms: _, remark: _ } = c;
+        // Fields are dropped; String remark has drop ability
+    };
+    // Now the vector is empty and can be destroyed
+    vector::destroy_empty(local);
+}
+
 public fun get_balance<T>(fund: &Fund<T>): u64 {
     balance::value(&fund.balance)
 }
 
 public fun get_contributor_count<T>(fund: &Fund<T>): u64 {
     fund.total_registry
+}
+
+/// Get contributor address at a specific index for enumeration
+public fun get_contributor_at<T>(fund: &Fund<T>, index: u64): address {
+    let len = vector::length(&fund.contributors);
+    assert!(index < len, EInvalidAmount);
+    *vector::borrow(&fund.contributors, index)
 }
 
 public fun get_contributor_total<T>(fund: &Fund<T>, contributor: address): u64 {
