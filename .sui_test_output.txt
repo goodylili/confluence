@@ -1,0 +1,95 @@
+INCLUDING DEPENDENCY Bridge
+INCLUDING DEPENDENCY SuiSystem
+INCLUDING DEPENDENCY usdc
+INCLUDING DEPENDENCY stablecoin
+INCLUDING DEPENDENCY sui_extensions
+INCLUDING DEPENDENCY Sui
+INCLUDING DEPENDENCY MoveStdlib
+BUILDING confluence
+[0m[1m[38;5;9merror[E06001][0m[1m: unused value without 'drop'[0m
+    [0m[34m┌─[0m ./tests/campaign_tests.move:84:38
+    [0m[34m│[0m
+[0m[34m 69[0m [0m[34m│[0m     let mut scenario = test_scenario::begin(creator);
+    [0m[34m│[0m         [0m[34m------------[0m [0m[34mThe local variable 'scenario' still contains a value. The value does not have the 'drop' ability and must be consumed before the function returns[0m
+    [0m[34m·[0m
+[0m[34m 84[0m [0m[34m│[0m     clock::destroy_for_testing(clock)[0m[31m;[0m
+    [0m[34m│[0m                                      [0m[31m^[0m [0m[31mInvalid return[0m
+    [0m[34m│[0m
+    [0m[34m┌─[0m /Users/goodylili/.move/https___github_com_MystenLabs_sui_git_4e8b6eda7d6411d80c62f39ac8a4f028e8d174c4/crates/sui-framework/packages/sui-framework/sources/test/test_scenario.move:73:15
+    [0m[34m│[0m
+[0m[34m 73[0m [0m[34m│[0m public struct Scenario {
+    [0m[34m│[0m               [0m[34m--------[0m [0m[34mTo satisfy the constraint, the 'drop' ability would need to be added here[0m
+    [0m[34m·[0m
+[0m[34m222[0m [0m[34m│[0m public fun begin(sender: address): Scenario {
+    [0m[34m│[0m                                    [0m[34m--------[0m [0m[34mThe type 'sui::test_scenario::Scenario' does not have the ability 'drop'[0m
+
+[0m[1m[38;5;11mwarning[Lint W99001][0m[1m: non-composable transfer to sender[0m
+    [0m[34m┌─[0m ./sources/campaign.move:153:5
+    [0m[34m│[0m
+[0m[34m 94[0m [0m[34m│[0m ): Campaign<T> {
+    [0m[34m│[0m    [0m[34m-----------[0m [0m[34mReturning an object from a function, allows a caller to use the object and enables composability via programmable transactions.[0m
+    [0m[34m·[0m
+[0m[34m130[0m [0m[34m│[0m     let sender = ctx.sender();
+    [0m[34m│[0m                  [0m[34m------------[0m [0m[34mTransaction sender address coming from here[0m
+    [0m[34m·[0m
+[0m[34m153[0m [0m[34m│[0m     [0m[33mtransfer::public_transfer(admin_cap, sender)[0m;
+    [0m[34m│[0m     [0m[33m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m [0m[33mTransfer of an object to transaction sender address[0m
+    [0m[34m│[0m
+    [0m[34m=[0m This warning can be suppressed with '#[allow(lint(self_transfer))]' applied to the 'module' or module member ('const', 'fun', or 'struct')
+
+[0m[1m[38;5;11mwarning[W09002][0m[1m: unused variable[0m
+    [0m[34m┌─[0m ./sources/campaign.move:193:5
+    [0m[34m│[0m
+[0m[34m193[0m [0m[34m│[0m     [0m[33mctx[0m: &mut TxContext
+    [0m[34m│[0m     [0m[33m^^^[0m [0m[33mUnused parameter 'ctx'. Consider removing or prefixing with an underscore: '_ctx'[0m
+    [0m[34m│[0m
+    [0m[34m=[0m This warning can be suppressed with '#[allow(unused_variable)]' applied to the 'module' or module member ('const', 'fun', or 'struct')
+
+[0m[1m[38;5;11mwarning[W09002][0m[1m: unused variable[0m
+    [0m[34m┌─[0m ./sources/campaign.move:222:5
+    [0m[34m│[0m
+[0m[34m222[0m [0m[34m│[0m     [0m[33mctx[0m: &mut TxContext
+    [0m[34m│[0m     [0m[33m^^^[0m [0m[33mUnused parameter 'ctx'. Consider removing or prefixing with an underscore: '_ctx'[0m
+    [0m[34m│[0m
+    [0m[34m=[0m This warning can be suppressed with '#[allow(unused_variable)]' applied to the 'module' or module member ('const', 'fun', or 'struct')
+
+[0m[1m[38;5;11mwarning[W09002][0m[1m: unused variable[0m
+    [0m[34m┌─[0m ./sources/campaign.move:251:5
+    [0m[34m│[0m
+[0m[34m251[0m [0m[34m│[0m     [0m[33mctx[0m: &mut TxContext
+    [0m[34m│[0m     [0m[33m^^^[0m [0m[33mUnused parameter 'ctx'. Consider removing or prefixing with an underscore: '_ctx'[0m
+    [0m[34m│[0m
+    [0m[34m=[0m This warning can be suppressed with '#[allow(unused_variable)]' applied to the 'module' or module member ('const', 'fun', or 'struct')
+
+[0m[1m[38;5;11mwarning[W09002][0m[1m: unused variable[0m
+    [0m[34m┌─[0m ./sources/campaign.move:283:5
+    [0m[34m│[0m
+[0m[34m283[0m [0m[34m│[0m     [0m[33mctx[0m: &mut TxContext
+    [0m[34m│[0m     [0m[33m^^^[0m [0m[33mUnused parameter 'ctx'. Consider removing or prefixing with an underscore: '_ctx'[0m
+    [0m[34m│[0m
+    [0m[34m=[0m This warning can be suppressed with '#[allow(unused_variable)]' applied to the 'module' or module member ('const', 'fun', or 'struct')
+
+[0m[1m[38;5;11mwarning[W09002][0m[1m: unused variable[0m
+    [0m[34m┌─[0m ./sources/campaign.move:315:5
+    [0m[34m│[0m
+[0m[34m315[0m [0m[34m│[0m     [0m[33mctx[0m: &mut TxContext
+    [0m[34m│[0m     [0m[33m^^^[0m [0m[33mUnused parameter 'ctx'. Consider removing or prefixing with an underscore: '_ctx'[0m
+    [0m[34m│[0m
+    [0m[34m=[0m This warning can be suppressed with '#[allow(unused_variable)]' applied to the 'module' or module member ('const', 'fun', or 'struct')
+
+[0m[1m[38;5;11mwarning[W09002][0m[1m: unused variable[0m
+    [0m[34m┌─[0m ./sources/campaign.move:390:5
+    [0m[34m│[0m
+[0m[34m390[0m [0m[34m│[0m     [0m[33mctx[0m: &mut TxContext
+    [0m[34m│[0m     [0m[33m^^^[0m [0m[33mUnused parameter 'ctx'. Consider removing or prefixing with an underscore: '_ctx'[0m
+    [0m[34m│[0m
+    [0m[34m=[0m This warning can be suppressed with '#[allow(unused_variable)]' applied to the 'module' or module member ('const', 'fun', or 'struct')
+
+[0m[1m[38;5;11mwarning[W09002][0m[1m: unused variable[0m
+    [0m[34m┌─[0m ./sources/campaign.move:433:5
+    [0m[34m│[0m
+[0m[34m433[0m [0m[34m│[0m     [0m[33mctx[0m: &mut TxContext
+    [0m[34m│[0m     [0m[33m^^^[0m [0m[33mUnused parameter 'ctx'. Consider removing or prefixing with an underscore: '_ctx'[0m
+    [0m[34m│[0m
+    [0m[34m=[0m This warning can be suppressed with '#[allow(unused_variable)]' applied to the 'module' or module member ('const', 'fun', or 'struct')
+

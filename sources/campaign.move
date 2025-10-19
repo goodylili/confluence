@@ -69,6 +69,21 @@ public struct Campaign<phantom T> has key {
     poaps_issued: bool
 }
 
+public struct AdminCap has key, store {
+    id: UID,
+    campaign_id: ID
+}
+
+fun assert_admin<T>(admin: &AdminCap, campaign: &Campaign<T>) {
+    assert!(admin.campaign_id == object::uid_to_inner(&campaign.id), ENotCreator);
+}
+
+public fun grant_admin<T>(campaign: &Campaign<T>, admin: &AdminCap, new_admin: address, ctx: &mut TxContext) {
+    assert_admin(admin, campaign);
+    let cap = AdminCap { id: object::new(ctx), campaign_id: object::uid_to_inner(&campaign.id) };
+    transfer::public_transfer(cap, new_admin);
+}
+
 public fun create_campaign<T>(
     title: String,
     description: String,
@@ -76,7 +91,7 @@ public fun create_campaign<T>(
     duration_ms: u64,
     clock: &Clock,
     ctx: &mut TxContext
-): Campaign<T> {
+): (Campaign<T>, AdminCap) {
     // Comprehensive input validation
     assert!(string::length(&title) > 0, EEmptyTitle);
     assert!(string::length(&title) <= 100, EInvalidGoal); // Max title length
@@ -103,7 +118,7 @@ public fun create_campaign<T>(
     let sui_type = type_name::with_defining_ids<SUI>();
     let usdc_type = type_name::with_defining_ids<USDC>();
 
-    if (&coin_type != &sui_type && &coin_type != &usdc_type) {
+    if (&coin_type != &sui_type && &usdc_type != &coin_type) {
         abort EUnsupportedCoinType
     };
 
@@ -115,7 +130,7 @@ public fun create_campaign<T>(
     let sender = ctx.sender();
 
     // Create campaign with the fund
-    Campaign<T> {
+    let campaign = Campaign<T> {
         id: uid,
         creator: sender,
         title,
@@ -131,7 +146,12 @@ public fun create_campaign<T>(
         total_withdrawn: 0,
         locked: false,
         poaps_issued: false
-    }
+    };
+
+    // Mint AdminCap for creator (returned to caller)
+    let admin_cap = AdminCap { id: object::new(ctx), campaign_id: object::uid_to_inner(&campaign.id) };
+
+    (campaign, admin_cap)
 }
 
 
@@ -144,7 +164,7 @@ public fun create_and_share_campaign<T>(
     clock: &Clock,
     ctx: &mut TxContext
 ) {
-    let campaign = create_campaign<T>(
+    let (campaign, admin_cap) = create_campaign<T>(
         title,
         description,
         goal,
@@ -153,6 +173,8 @@ public fun create_and_share_campaign<T>(
         ctx
     );
 
+    // transfer the admin cap to the creator, and share the campaign
+    transfer::public_transfer(admin_cap, ctx.sender());
     transfer::share_object(campaign);
 }
 
@@ -166,12 +188,12 @@ public fun share_for_testing<T>(campaign: Campaign<T>) {
 /// Update campaign title
 public fun update_title<T>(
     campaign: &mut Campaign<T>,
+    admin:  &AdminCap,
     new_title: String,
     clock: &Clock,
-    ctx: &mut TxContext
 ) {
-    // Validate caller is creator
-    assert!(ctx.sender() == campaign.creator, ENotCreator);
+    // Validate caller is admin via capability
+    assert_admin(admin, campaign);
 
     // Validate campaign is active and not expired
     assert!(campaign.status == STATUS_ACTIVE, ECampaignNotActive);
@@ -194,12 +216,12 @@ public fun update_title<T>(
 /// Update campaign description
 public fun update_description<T>(
     campaign: &mut Campaign<T>,
+    admin: &AdminCap,
     new_description: String,
     clock: &Clock,
-    ctx: &mut TxContext
 ) {
-    // Validate caller is creator
-    assert!(ctx.sender() == campaign.creator, ENotCreator);
+    // Validate caller is admin via capability
+    assert_admin(admin, campaign);
 
     // Validate campaign is active and not expired
     assert!(campaign.status == STATUS_ACTIVE, ECampaignNotActive);
@@ -222,12 +244,12 @@ public fun update_description<T>(
 /// Update campaign profile picture URL
 public fun set_profile_url<T>(
     campaign: &mut Campaign<T>,
+    admin: &AdminCap,
     new_profile_url: String,
     clock: &Clock,
-    ctx: &mut TxContext
 ) {
-    // Validate caller is creator
-    assert!(ctx.sender() == campaign.creator, ENotCreator);
+    // Validate caller is admin via capability
+    assert_admin(admin, campaign);
 
     // Validate campaign is active and not expired
     assert!(campaign.status == STATUS_ACTIVE, ECampaignNotActive);
@@ -253,12 +275,12 @@ public fun set_profile_url<T>(
 /// Update campaign background URL
 public fun set_background_url<T>(
     campaign: &mut Campaign<T>,
+    admin: &AdminCap,
     new_background_url: String,
     clock: &Clock,
-    ctx: &mut TxContext
 ) {
-    // Validate caller is creator
-    assert!(ctx.sender() == campaign.creator, ENotCreator);
+    // Validate caller is admin via capability
+    assert_admin(admin, campaign);
 
     // Validate campaign is active and not expired
     assert!(campaign.status == STATUS_ACTIVE, ECampaignNotActive);
@@ -284,16 +306,16 @@ public fun set_background_url<T>(
 /// Update campaign goal (only creator, only if campaign is active and not expired)
 public fun update_goal<T>(
     campaign: &mut Campaign<T>,
+    admin: &AdminCap,
     new_goal: u64,
     clock: &Clock,
-    ctx: &mut TxContext
 ) {
     // Reentrancy protection
     assert!(!campaign.locked, EReentrancyGuard);
     campaign.locked = true;
     
-    // Validate caller is creator
-    assert!(ctx.sender() == campaign.creator, ENotCreator);
+    // Validate caller is admin via capability
+    assert_admin(admin, campaign);
 
     // Validate campaign can be updated
     assert!(can_be_updated(campaign, clock), ECampaignExpired);
@@ -358,6 +380,7 @@ public fun update_goal<T>(
 /// Pause campaign (only creator can pause)
 public fun pause_campaign<T>(
     campaign: &mut Campaign<T>,
+    admin: &AdminCap,
     reason: String,
     clock: &Clock,
     ctx: &mut TxContext
@@ -366,8 +389,8 @@ public fun pause_campaign<T>(
     assert!(!campaign.locked, EReentrancyGuard);
     campaign.locked = true;
     
-    // Validate caller is creator
-    assert!(ctx.sender() == campaign.creator, ENotCreator);
+    // Validate caller is admin via capability
+    assert_admin(admin, campaign);
 
     // Validate campaign is currently active
     assert!(campaign.status == STATUS_ACTIVE, ECampaignNotActive);
@@ -401,6 +424,7 @@ public fun pause_campaign<T>(
 /// Unpause campaign (only creator can unpause)
 public fun unpause_campaign<T>(
     campaign: &mut Campaign<T>,
+    admin: &AdminCap,
     clock: &Clock,
     ctx: &mut TxContext
 ) {
@@ -408,8 +432,8 @@ public fun unpause_campaign<T>(
     assert!(!campaign.locked, EReentrancyGuard);
     campaign.locked = true;
     
-    // Validate caller is creator
-    assert!(ctx.sender() == campaign.creator, ENotCreator);
+    // Validate caller is admin via capability
+    assert_admin(admin, campaign);
 
     // Validate campaign is currently paused
     assert!(campaign.status == STATUS_PAUSED, ECampaignNotPaused);
@@ -442,6 +466,7 @@ public fun unpause_campaign<T>(
 /// Cancel campaign and refund all contributors
 public fun cancel_campaign<T>(
     campaign: &mut Campaign<T>,
+    admin: &AdminCap,
     reason: String,
     clock: &Clock,
     ctx: &mut TxContext
@@ -450,8 +475,8 @@ public fun cancel_campaign<T>(
     assert!(!campaign.locked, EReentrancyGuard);
     campaign.locked = true;
     
-    // Validate caller is creator
-    assert!(ctx.sender() == campaign.creator, ENotCreator);
+    // Validate caller is admin via capability
+    assert_admin(admin, campaign);
 
     // Validate campaign is not already finalized to a terminal state
     // Allow finalization when goal was reached earlier (STATUS_SUCCESSFUL pre-finalization)
@@ -501,6 +526,7 @@ public fun cancel_campaign<T>(
 /// Finalize campaign (determine success or failure) - Only creator can finalize
 public fun finalize_campaign<T>(
     campaign: &mut Campaign<T>,
+    admin: &AdminCap,
     clock: &Clock,
     ctx: &mut TxContext
 ) {
@@ -508,8 +534,8 @@ public fun finalize_campaign<T>(
     assert!(!campaign.locked, EReentrancyGuard);
     campaign.locked = true;
     
-    // Strict access control - only creator can finalize
-    assert!(ctx.sender() == campaign.creator, ENotCreator);
+    // Strict access control - only admin via capability
+    assert_admin(admin, campaign);
     
     // Validate campaign has expired
     let current_time = clock::timestamp_ms(clock);
@@ -755,6 +781,7 @@ public fun refund_contributor<T>(
 /// Withdraw funds from campaign after time elapsed (only creator)
 public fun withdraw_funds<T>(
     campaign: &mut Campaign<T>,
+    admin: &AdminCap,
     amount: u64,
     clock: &Clock,
     ctx: &mut TxContext
@@ -763,8 +790,8 @@ public fun withdraw_funds<T>(
     assert!(!campaign.locked, EReentrancyGuard);
     campaign.locked = true;
     
-    // Validate caller is creator
-    assert!(ctx.sender() == campaign.creator, ENotCreator);
+    // Validate caller is admin via capability
+    assert_admin(admin, campaign);
 
     // Validate campaign time has elapsed
     let current_time = clock::timestamp_ms(clock);
@@ -831,6 +858,7 @@ public fun withdraw_funds<T>(
 /// Emergency refund function for specific contributors (creator only, with restrictions)
 public fun emergency_refund<T>(
     campaign: &mut Campaign<T>,
+    admin: &AdminCap,
     contributor: address,
     reason: String,
     _clock: &Clock,
@@ -840,8 +868,8 @@ public fun emergency_refund<T>(
     assert!(!campaign.locked, EReentrancyGuard);
     campaign.locked = true;
     
-    // Validate caller is creator
-    assert!(ctx.sender() == campaign.creator, ENotCreator);
+    // Validate caller is admin via capability
+    assert_admin(admin, campaign);
     
     // Restrict emergency refunds to specific campaign states only
     assert!(
